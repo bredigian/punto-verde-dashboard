@@ -8,7 +8,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!user) redirect('/login')
 
   return (
-    <div className="min-h-screen pb-16">
+    <div className="min-h-dvh pb-16">
       {children}
       <BottomNav />
     </div>

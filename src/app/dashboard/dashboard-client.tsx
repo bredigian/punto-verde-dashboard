@@ -6,7 +6,7 @@ import Image from "next/image"
 import logo from "../../../public/punto-fresco-logo.jpg"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { Sale, Category, PaymentMethod } from "@/types"
+import { Sale, Category, PaymentMethod, Expense, CashClosing } from "@/types"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,10 +14,12 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
 import { MoneyInput } from "@/components/money-input"
 import { CategoryPicker } from "@/components/category-picker"
 import { PaymentPicker } from "@/components/payment-picker"
-import { Plus, LogOut, TrendingUp, ShoppingCart, Trash2, Banknote } from "lucide-react"
+import { Plus, LogOut, TrendingUp, ShoppingCart, Trash2, Banknote, Calculator } from "lucide-react"
+import { CierreCajaDrawer } from "@/components/cierre-caja-drawer"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
@@ -33,17 +35,25 @@ const PAYMENT_ICONS: Record<PaymentMethod, React.ReactNode> = {
 
 interface Props {
   initialSales: Sale[]
+  initialExpenses: Expense[]
+  initialClosing: CashClosing | null
 }
 
-export default function DashboardClient({ initialSales }: Props) {
+export default function DashboardClient({ initialSales, initialExpenses, initialClosing }: Props) {
   const [sales, setSales] = useState<Sale[]>(initialSales)
+  const [closing, setClosing] = useState<CashClosing | null>(initialClosing)
   const [open, setOpen] = useState(false)
+  const [cierreOpen, setCierreOpen] = useState(false)
+  const today = new Date().toISOString().split('T')[0]
+  const isClosed = closing !== null
   const [amount, setAmount] = useState("")
   const [category, setCategory] = useState<Category | "">("")
   const [payment, setPayment] = useState<PaymentMethod | "">("")
   const [note, setNote] = useState("")
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [logoutConfirm, setLogoutConfirm] = useState(false)
   const [activeTab, setActiveTab] = useState("todas")
 
   const router = useRouter()
@@ -72,6 +82,10 @@ export default function DashboardClient({ initialSales }: Props) {
     if (!total) return
     setSaving(true)
 
+    const nextDay = new Date()
+    nextDay.setDate(nextDay.getDate() + 1)
+    nextDay.setHours(0, 0, 1, 0)
+
     const { data, error } = await supabase
       .from("sales")
       .insert({
@@ -82,22 +96,25 @@ export default function DashboardClient({ initialSales }: Props) {
         unit_price: total,
         total,
         payment_method: payment as PaymentMethod,
+        ...(isClosed && { created_at: nextDay.toISOString() }),
       })
       .select()
       .single()
 
     if (!error && data) {
-      setSales([data, ...sales])
+      if (!isClosed) setSales([data, ...sales])
       setOpen(false)
     }
     setSaving(false)
   }
 
   async function handleDelete(id: string) {
+    if (isClosed) return
     setDeletingId(id)
     await supabase.from("sales").delete().eq("id", id)
     setSales(sales.filter((s) => s.id !== id))
     setDeletingId(null)
+    setDeleteTarget(null)
   }
 
   async function handleLogout() {
@@ -109,18 +126,19 @@ export default function DashboardClient({ initialSales }: Props) {
     <div className="max-w-lg mx-auto p-4 pb-36">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Image src={logo} alt="Punto Fresco" width={36} height={36} className="rounded-lg object-cover" />
           <h1 className="text-xl font-bold">Punto Fresco</h1>
         </div>
-        <Button variant="ghost" size="sm" onClick={handleLogout}>
+        <Button variant="ghost" size="sm" onClick={() => setLogoutConfirm(true)}>
           <LogOut className="h-4 w-4" />
         </Button>
       </div>
 
-      <p className="text-sm text-muted-foreground mb-4 capitalize">
+      <p className="text-sm text-muted-foreground capitalize mt-2">
         {format(new Date(), "EEEE d 'de' MMMM", { locale: es })}
       </p>
+      <p className="text-sm text-muted-foreground/70 mb-4">Registrá ventas y controlá el movimiento del día.</p>
 
       {/* Resumen */}
       <div className="grid grid-cols-6 gap-3 mb-6">
@@ -211,14 +229,16 @@ export default function DashboardClient({ initialSales }: Props) {
                             </span>
                           )}
                         </p>
-                        <Button
-                          variant="ghost" size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-red-500 shrink-0"
-                          onClick={() => handleDelete(sale.id)}
-                          disabled={deletingId === sale.id}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        {!isClosed && (
+                          <Button
+                            variant="ghost" size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-red-500 shrink-0"
+                            onClick={() => setDeleteTarget(sale.id)}
+                            disabled={deletingId === sale.id}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                     <CardFooter className="py-2">
@@ -235,10 +255,12 @@ export default function DashboardClient({ initialSales }: Props) {
       </Tabs>
 
       {/* FAB */}
-      <div className="fixed bottom-20 right-4 left-4 max-w-lg mx-auto">
-        <Button className="w-full h-14 text-base shadow-lg bg-green-600 hover:bg-green-700" onClick={handleOpen}>
-          <Plus className="h-5 w-5 mr-2" />
+      <div className="fixed bottom-20 right-4 left-4 max-w-lg mx-auto flex gap-3">
+        <Button className="flex-1 h-14 text-base shadow-lg bg-green-600 hover:bg-green-700" onClick={handleOpen}>
           Registrar venta
+        </Button>
+        <Button className="h-14 px-4 shadow-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium" onClick={() => setCierreOpen(true)}>
+          Cerrar caja
         </Button>
       </div>
 
@@ -249,6 +271,12 @@ export default function DashboardClient({ initialSales }: Props) {
             <DrawerTitle>Nueva venta</DrawerTitle>
           </DrawerHeader>
           <div className="px-4 pb-8">
+            {isClosed && (
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-3 py-2 text-sm mb-4">
+                <span className="mt-0.5">⚠️</span>
+                <span>La caja de hoy está cerrada. Esta venta se registrará como del día siguiente.</span>
+              </div>
+            )}
             <form onSubmit={handleSave} className="space-y-4">
               <MoneyInput value={amount} onChange={setAmount} autoFocus className="py-6" />
 
@@ -281,6 +309,47 @@ export default function DashboardClient({ initialSales }: Props) {
           </div>
         </DrawerContent>
       </Drawer>
+
+      <CierreCajaDrawer
+        open={cierreOpen}
+        onClose={() => setCierreOpen(false)}
+        sales={sales}
+        initialExpenses={initialExpenses}
+        initialClosing={initialClosing}
+        today={today}
+      />
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={v => !v && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar venta?</AlertDialogTitle>
+            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => deleteTarget && handleDelete(deleteTarget)}
+              disabled={!!deletingId}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={logoutConfirm} onOpenChange={setLogoutConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
+            <AlertDialogDescription>Vas a salir de la cuenta.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout}>Salir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

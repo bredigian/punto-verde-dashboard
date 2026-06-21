@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ShoppingCart, History } from 'lucide-react'
+import { ShoppingCart, History, BookLock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const links = [
   { href: '/dashboard', label: 'Ventas', icon: ShoppingCart },
   { href: '/dashboard/history', label: 'Historial', icon: History },
+  { href: '/dashboard/cierres', label: 'Cierres', icon: BookLock },
 ]
 
 export default function BottomNav() {

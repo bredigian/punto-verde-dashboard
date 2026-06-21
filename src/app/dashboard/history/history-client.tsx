@@ -8,10 +8,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { History, Banknote, Trash2 } from 'lucide-react'
+import { History, Banknote, Trash2, Lock } from 'lucide-react'
 import Image from 'next/image'
 import logo from '../../../../public/punto-fresco-logo.jpg'
 import { createClient } from '@/lib/supabase/client'
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog'
 
 const CATEGORY_COLORS: Record<Category, string> = {
   verduleria: 'bg-green-100 text-green-700',
@@ -45,29 +46,34 @@ function groupByDay(sales: Sale[]): DayGroup[] {
 
 interface Props {
   sales: Sale[]
+  closedDates: Set<string>
 }
 
-export default function HistorialClient({ sales: initialSales }: Props) {
+export default function HistorialClient({ sales: initialSales, closedDates }: Props) {
   const [sales, setSales] = useState(initialSales)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: string } | null>(null)
   const router = useRouter()
   const supabase = createClient()
   const groups = groupByDay(sales)
 
-  async function handleDelete(id: string) {
+  async function handleDelete(id: string, date: string) {
+    if (closedDates.has(date)) return
     setDeletingId(id)
     await supabase.from('sales').delete().eq('id', id)
     setSales(prev => prev.filter(s => s.id !== id))
     setDeletingId(null)
+    setDeleteTarget(null)
     router.refresh()
   }
 
   return (
     <div className="max-w-lg mx-auto p-4 pb-24">
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-3 mb-2">
         <Image src={logo} alt="Punto Fresco" width={36} height={36} className="rounded-lg object-cover" />
         <h1 className="text-xl font-bold">Historial</h1>
       </div>
+      <p className="text-sm text-muted-foreground/70 mb-6">Todas las ventas registradas, agrupadas por día.</p>
 
       {groups.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
@@ -83,10 +89,15 @@ export default function HistorialClient({ sales: initialSales }: Props) {
               ? 'Hoy'
               : format(parsed, "EEEE d 'de' MMMM", { locale: es })
 
+            const isClosed = closedDates.has(date)
+
             return (
               <div key={date}>
                 <div className="flex items-center justify-between mb-2 px-1">
-                  <p className="text-sm font-semibold capitalize text-muted-foreground">{label}</p>
+                  <p className="text-sm font-semibold capitalize text-muted-foreground flex items-center gap-1.5">
+                    {isClosed && <Lock className="h-3.5 w-3.5" />}
+                    {label}
+                  </p>
                   <span className="text-sm font-semibold bg-green-100 text-green-700 px-2.5 py-1 rounded-full">
                     ${total.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
                   </span>
@@ -119,14 +130,16 @@ export default function HistorialClient({ sales: initialSales }: Props) {
                               </span>
                             )}
                           </p>
-                          <Button
-                            variant="ghost" size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-red-500 shrink-0"
-                            onClick={() => handleDelete(sale.id)}
-                            disabled={deletingId === sale.id}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                          {!isClosed && (
+                            <Button
+                              variant="ghost" size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-red-500 shrink-0"
+                              onClick={() => setDeleteTarget({ id: sale.id, date })}
+                              disabled={deletingId === sale.id}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                         </div>
                       </CardContent>
                       <CardFooter className="py-2">
@@ -142,6 +155,25 @@ export default function HistorialClient({ sales: initialSales }: Props) {
           })}
         </div>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={v => !v && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar venta?</AlertDialogTitle>
+            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => deleteTarget && handleDelete(deleteTarget.id, deleteTarget.date)}
+              disabled={!!deletingId}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
