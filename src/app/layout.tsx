@@ -6,14 +6,21 @@ import "./globals.css";
 const geist = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Mercado Dashboard",
-  description: "Panel de ventas",
+  title: "Punto Fresco",
+  description: "Panel de ventas Punto Fresco",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Punto Fresco",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  themeColor: "#16a34a",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
