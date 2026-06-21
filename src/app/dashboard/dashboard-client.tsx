@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import React from "react"
 import Image from "next/image"
 import logo from "../../../public/punto-fresco-logo.jpg"
@@ -57,8 +57,15 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
   const [logoutConfirm, setLogoutConfirm] = useState(false)
   const [activeTab, setActiveTab] = useState("todas")
 
+  const [scrolled, setScrolled] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 0)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   const totalDay = sales.reduce((sum, s) => sum + s.total, 0)
   const totalEfectivo = sales.filter((s) => s.payment_method === "efectivo").reduce((sum, s) => sum + s.total, 0)
@@ -124,21 +131,24 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
   }
 
   return (
-    <div className="max-w-lg mx-auto p-4 pb-36">
+    <div className="max-w-lg mx-auto pb-36">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Image src={logo} alt="Punto Fresco" width={36} height={36} className="rounded-lg object-cover" />
-          <h1 className="text-xl font-bold">Punto Fresco</h1>
-        </div>
-        <div className="flex items-center">
-          <ThemeToggle />
-          <Button variant="ghost" size="sm" onClick={() => setLogoutConfirm(true)}>
-            <LogOut className="h-4 w-4" />
-          </Button>
+      <div className={`sticky top-0 z-30 bg-background/80 backdrop-blur-md px-4 py-3 transition-shadow ${scrolled ? 'border-b' : ''}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Image src={logo} alt="Punto Fresco" width={36} height={36} className="rounded-lg object-cover" />
+            <h1 className="text-xl font-bold">Punto Fresco</h1>
+          </div>
+          <div className="flex items-center">
+            <ThemeToggle />
+            <Button variant="ghost" size="sm" onClick={() => setLogoutConfirm(true)}>
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
+      <div className="p-4">
       <p className="text-sm text-muted-foreground capitalize mt-2">
         {format(new Date(), "EEEE d 'de' MMMM", { locale: es })}
       </p>
@@ -259,6 +269,7 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
       </Tabs>
 
       {/* FAB */}
+      <div className="fixed bottom-0 left-0 right-0 h-56 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none" />
       <div className="fixed bottom-20 right-4 left-4 max-w-lg mx-auto flex gap-3">
         <Button className="flex-1 h-14 text-base shadow-lg bg-green-600 hover:bg-green-700" onClick={handleOpen}>
           Registrar venta
@@ -313,6 +324,8 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
           </div>
         </DrawerContent>
       </Drawer>
+
+      </div>
 
       <CierreCajaDrawer
         open={cierreOpen}

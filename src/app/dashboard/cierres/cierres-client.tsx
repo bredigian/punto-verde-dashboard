@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { BookLock, Banknote, Receipt } from 'lucide-react'
+import { BookLock, Banknote, Receipt, TrendingUp, CalendarDays } from 'lucide-react'
 import Image from 'next/image'
 import logo from '../../../../public/punto-fresco-logo.jpg'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -18,6 +18,21 @@ interface Props {
 }
 
 export default function CierresClient({ closings }: Props) {
+  const now = new Date()
+  const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1)
+  const currentYear = now.getFullYear()
+
+  const monthlyResult = closings
+    .filter(c => {
+      const d = parseISO(c.date)
+      return d.getFullYear() * 100 + (d.getMonth() + 1) === currentMonth
+    })
+    .reduce((sum, c) => sum + c.result, 0)
+
+  const yearlyResult = closings
+    .filter(c => parseISO(c.date).getFullYear() === currentYear)
+    .reduce((sum, c) => sum + c.result, 0)
+
   const [selectedClosing, setSelectedClosing] = useState<CashClosing | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(false)
@@ -42,7 +57,36 @@ export default function CierresClient({ closings }: Props) {
         <Image src={logo} alt="Punto Fresco" width={36} height={36} className="rounded-lg object-cover" />
         <h1 className="text-xl font-bold">Cierres de caja</h1>
       </div>
-      <p className="text-sm text-muted-foreground/70 mb-6">Resumen de cada cierre con ventas, gastos y resultado neto.</p>
+      <p className="text-sm text-muted-foreground/70 mb-4">Resumen de cada cierre con ventas, gastos y resultado neto.</p>
+
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <Card>
+          <CardHeader className="pb-1">
+            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5" />
+              {format(now, 'MMMM', { locale: es }).replace(/^\w/, c => c.toUpperCase())}
+            </span>
+          </CardHeader>
+          <CardContent className="py-1">
+            <p className={`text-xl font-bold ${monthlyResult >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+              ${monthlyResult.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-1">
+            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+              <CalendarDays className="h-3.5 w-3.5" />
+              {currentYear}
+            </span>
+          </CardHeader>
+          <CardContent className="py-1">
+            <p className={`text-xl font-bold ${yearlyResult >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+              ${yearlyResult.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       {closings.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
