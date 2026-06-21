@@ -124,8 +124,8 @@ export function MoneyInput({ value, onChange, autoFocus, compact, className }: M
           aria-label="Monto"
         />
 
-        <div className="pointer-events-none select-none flex items-baseline gap-1.5">
-          <span className={cn('font-semibold text-muted-foreground', isZero ? 'text-3xl' : 'text-2xl')}>
+        <div className="pointer-events-none select-none flex items-end gap-1.5 pb-1">
+          <span className="text-2xl font-semibold text-muted-foreground mb-0.5">
             $
           </span>
           <span

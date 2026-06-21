@@ -19,13 +19,14 @@ import { MoneyInput } from "@/components/money-input"
 import { CategoryPicker } from "@/components/category-picker"
 import { PaymentPicker } from "@/components/payment-picker"
 import { Plus, LogOut, TrendingUp, ShoppingCart, Trash2, Banknote, Calculator } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { CierreCajaDrawer } from "@/components/cierre-caja-drawer"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
 const CATEGORY_COLORS: Record<Category, string> = {
-  verduleria: "bg-green-100 text-green-700",
-  polleria: "bg-yellow-100 text-yellow-700",
+  verduleria: "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100",
+  polleria: "bg-yellow-100 text-yellow-700 dark:bg-yellow-600 dark:text-yellow-50",
 }
 
 const PAYMENT_ICONS: Record<PaymentMethod, React.ReactNode> = {
@@ -130,9 +131,12 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
           <Image src={logo} alt="Punto Fresco" width={36} height={36} className="rounded-lg object-cover" />
           <h1 className="text-xl font-bold">Punto Fresco</h1>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setLogoutConfirm(true)}>
-          <LogOut className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center">
+          <ThemeToggle />
+          <Button variant="ghost" size="sm" onClick={() => setLogoutConfirm(true)}>
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <p className="text-sm text-muted-foreground capitalize mt-2">
@@ -168,12 +172,12 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
         <Card className="col-span-2">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <ShoppingCart className="h-3.5 w-3.5 text-blue-600" />
+              <ShoppingCart className="h-3.5 w-3.5 text-blue-600 dark:text-indigo-400" />
               Ventas
             </CardTitle>
           </CardHeader>
           <CardContent className="py-1 flex justify-center">
-            <p className="text-2xl font-bold text-blue-700">{sales.length}</p>
+            <p className="text-2xl font-bold text-blue-700 dark:text-indigo-400">{sales.length}</p>
           </CardContent>
           <CardFooter className="flex flex-row justify-center gap-4">
             <span className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
@@ -259,7 +263,7 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
         <Button className="flex-1 h-14 text-base shadow-lg bg-green-600 hover:bg-green-700" onClick={handleOpen}>
           Registrar venta
         </Button>
-        <Button className="h-14 px-4 shadow-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium" onClick={() => setCierreOpen(true)}>
+        <Button className="h-14 px-4 shadow-lg bg-amber-500 hover:bg-amber-600 text-white dark:text-black text-sm font-medium" onClick={() => setCierreOpen(true)}>
           Cerrar caja
         </Button>
       </div>
@@ -272,7 +276,7 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
           </DrawerHeader>
           <div className="px-4 pb-8">
             {isClosed && (
-              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-3 py-2 text-sm mb-4">
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-700 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-300 rounded-lg px-3 py-2 text-sm mb-4">
                 <span className="mt-0.5">⚠️</span>
                 <span>La caja de hoy está cerrada. Esta venta se registrará como del día siguiente.</span>
               </div>

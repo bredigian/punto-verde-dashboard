@@ -103,7 +103,7 @@ export function CierreCajaDrawer({ open, onClose, sales, initialExpenses, initia
         <div className="overflow-y-auto px-4 pb-8 space-y-6">
 
           {isClosed && (
-            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-3 py-2 text-sm">
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-300 rounded-lg px-3 py-2 text-sm">
               <Lock className="h-4 w-4 shrink-0" />
               Caja cerrada. Las ventas de hoy están liquidadas.
             </div>
@@ -195,10 +195,10 @@ export function CierreCajaDrawer({ open, onClose, sales, initialExpenses, initia
           </div>
 
           {/* Resultado */}
-          <div className={`rounded-xl p-4 ${resultado >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+          <div className={`rounded-xl p-4 ${resultado >= 0 ? 'bg-green-50 dark:bg-green-950' : 'bg-red-50 dark:bg-red-950'}`}>
             <div className="flex items-center justify-between">
               <span className="font-semibold">Resultado final</span>
-              <span className={`text-2xl font-bold ${resultado >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+              <span className={`text-2xl font-bold ${resultado >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                 ${resultado.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
               </span>
             </div>

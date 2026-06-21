@@ -28,7 +28,7 @@ export default function BottomNav() {
                 active ? 'text-green-600' : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <Icon className={cn('h-5 w-5', active && 'fill-green-100')} />
+              <Icon className={cn('h-5 w-5', active && 'fill-green-100 dark:fill-green-900')} />
               {label}
             </Link>
           )

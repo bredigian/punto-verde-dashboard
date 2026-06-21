@@ -4,8 +4,8 @@ import { Category } from '@/types'
 import { cn } from '@/lib/utils'
 
 const OPTIONS: { value: Category; label: string; activeClass: string }[] = [
-  { value: 'verduleria', label: 'Verdulería', activeClass: 'bg-green-100 text-green-700 border-green-300' },
-  { value: 'polleria', label: 'Pollería', activeClass: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+  { value: 'verduleria', label: 'Verdulería', activeClass: 'bg-green-100 text-green-700 border-green-300 dark:bg-green-700 dark:text-green-100 dark:border-green-600' },
+  { value: 'polleria', label: 'Pollería', activeClass: 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-600 dark:text-yellow-50 dark:border-yellow-500' },
 ]
 
 interface Props {

@@ -15,8 +15,8 @@ import { createClient } from '@/lib/supabase/client'
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog'
 
 const CATEGORY_COLORS: Record<Category, string> = {
-  verduleria: 'bg-green-100 text-green-700',
-  polleria: 'bg-yellow-100 text-yellow-700',
+  verduleria: 'bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100',
+  polleria: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-600 dark:text-yellow-50',
 }
 
 const CATEGORY_LABELS: Record<Category, string> = {
@@ -98,7 +98,7 @@ export default function HistorialClient({ sales: initialSales, closedDates }: Pr
                     {isClosed && <Lock className="h-3.5 w-3.5" />}
                     {label}
                   </p>
-                  <span className="text-sm font-semibold bg-green-100 text-green-700 px-2.5 py-1 rounded-full">
+                  <span className="text-sm font-semibold bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100 px-2.5 py-1 rounded-full">
                     ${total.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
                   </span>
                 </div>
