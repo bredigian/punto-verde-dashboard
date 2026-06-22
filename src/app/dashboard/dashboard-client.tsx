@@ -23,6 +23,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { CierreCajaDrawer } from "@/components/cierre-caja-drawer"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import { todayAR, formatInAR, nowInAR } from "@/lib/date"
 
 const CATEGORY_COLORS: Record<Category, string> = {
   verduleria: "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100",
@@ -45,7 +46,7 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
   const [closing, setClosing] = useState<CashClosing | null>(initialClosing)
   const [open, setOpen] = useState(false)
   const [cierreOpen, setCierreOpen] = useState(false)
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayAR()
   const isClosed = closing !== null
   const [amount, setAmount] = useState("")
   const [category, setCategory] = useState<Category | "">("")
@@ -90,9 +91,9 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
     if (!total) return
     setSaving(true)
 
-    const nextDay = new Date()
+    const nextDay = nowInAR()
     nextDay.setDate(nextDay.getDate() + 1)
-    nextDay.setHours(0, 0, 1, 0)
+    nextDay.setHours(3, 0, 1, 0)
 
     const { data, error } = await supabase
       .from("sales")
@@ -150,7 +151,7 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
 
       <div className="p-4">
       <p className="text-sm text-muted-foreground capitalize mt-2">
-        {format(new Date(), "EEEE d 'de' MMMM", { locale: es })}
+        {format(nowInAR(), "EEEE d 'de' MMMM", { locale: es })}
       </p>
       <p className="text-sm text-muted-foreground/70 mb-4">Registrá ventas y controlá el movimiento del día.</p>
 
@@ -229,7 +230,7 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
                           {sale.payment_method === "efectivo" ? "Efectivo" : "Mercado Pago"}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {format(new Date(sale.created_at), "HH:mm")}
+                          {formatInAR(sale.created_at, "HH:mm")}
                         </span>
                       </div>
                     </CardHeader>

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { todayAR, formatInAR, nowInAR, dateToAR } from '@/lib/date'
 import { BookLock, Banknote, Receipt, TrendingUp, CalendarDays } from 'lucide-react'
 import Image from 'next/image'
 import logo from '../../../../public/punto-fresco-logo.jpg'
@@ -18,19 +19,19 @@ interface Props {
 }
 
 export default function CierresClient({ closings }: Props) {
-  const now = new Date()
+  const now = nowInAR()
   const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1)
   const currentYear = now.getFullYear()
 
   const monthlyResult = closings
     .filter(c => {
-      const d = parseISO(c.date)
+      const d = dateToAR(c.date)
       return d.getFullYear() * 100 + (d.getMonth() + 1) === currentMonth
     })
     .reduce((sum, c) => sum + c.result, 0)
 
   const yearlyResult = closings
-    .filter(c => parseISO(c.date).getFullYear() === currentYear)
+    .filter(c => dateToAR(c.date).getFullYear() === currentYear)
     .reduce((sum, c) => sum + c.result, 0)
 
   const [selectedClosing, setSelectedClosing] = useState<CashClosing | null>(null)
@@ -96,8 +97,8 @@ export default function CierresClient({ closings }: Props) {
       ) : (
         <div className="space-y-3">
           {closings.map((closing) => {
-            const date = parseISO(closing.date)
-            const isToday = closing.date === new Date().toISOString().slice(0, 10)
+            const date = dateToAR(closing.date)
+            const isToday = closing.date === todayAR()
             const label = isToday
               ? 'Hoy'
               : format(date, "EEEE d 'de' MMMM", { locale: es })
@@ -112,7 +113,7 @@ export default function CierresClient({ closings }: Props) {
                       {label}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {format(parseISO(closing.closed_at), 'HH:mm')}
+                      {formatInAR(closing.closed_at, 'HH:mm')}
                     </span>
                   </div>
                 </CardHeader>
@@ -153,7 +154,7 @@ export default function CierresClient({ closings }: Props) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Gastos del {selectedClosing && format(parseISO(selectedClosing.date), "d 'de' MMMM", { locale: es })}
+              Gastos del {selectedClosing && format(dateToAR(selectedClosing.date), "d 'de' MMMM", { locale: es })}
             </AlertDialogTitle>
           </AlertDialogHeader>
 

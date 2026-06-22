@@ -6,8 +6,9 @@ import { Sale, Category, PaymentMethod } from '@/types'
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { todayAR, formatInAR, dateToAR } from '@/lib/date'
 import { History, Banknote, Trash2, Lock } from 'lucide-react'
 import Image from 'next/image'
 import logo from '../../../../public/punto-fresco-logo.jpg'
@@ -33,7 +34,7 @@ interface DayGroup {
 function groupByDay(sales: Sale[]): DayGroup[] {
   const map = new Map<string, Sale[]>()
   for (const sale of sales) {
-    const day = sale.created_at.slice(0, 10)
+    const day = formatInAR(sale.created_at, 'yyyy-MM-dd')
     if (!map.has(day)) map.set(day, [])
     map.get(day)!.push(sale)
   }
@@ -83,11 +84,10 @@ export default function HistorialClient({ sales: initialSales, closedDates }: Pr
       ) : (
         <div className="space-y-6">
           {groups.map(({ date, sales: daySales, total }) => {
-            const parsed = parseISO(date)
-            const isToday = date === new Date().toISOString().slice(0, 10)
+            const isToday = date === todayAR()
             const label = isToday
               ? 'Hoy'
-              : format(parsed, "EEEE d 'de' MMMM", { locale: es })
+              : format(dateToAR(date), "EEEE d 'de' MMMM", { locale: es })
 
             const isClosed = closedDates.has(date)
 
@@ -116,7 +116,7 @@ export default function HistorialClient({ sales: initialSales, closedDates }: Pr
                             {sale.payment_method === 'efectivo' ? 'Efectivo' : 'Mercado Pago'}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {format(parseISO(sale.created_at), 'HH:mm')}
+                            {formatInAR(sale.created_at, 'HH:mm')}
                           </span>
                         </div>
                       </CardHeader>
