@@ -7,24 +7,22 @@ export default async function DashboardPage() {
 
   const today = todayAR()
 
-  // Argentina is UTC-3, so the local day starts at UTC 03:00 and ends at next day UTC 03:00
-  const start = `${today}T03:00:00.000Z`
-  const nextDay = new Date(`${today}T03:00:00.000Z`)
-  nextDay.setDate(nextDay.getDate() + 1)
-  const end = nextDay.toISOString()
+  // Use explicit Argentina offset (-03:00) so Postgres interprets correctly
+  const start = `${today}T00:00:00-03:00`
+  const end = `${today}T23:59:59-03:00`
 
   const [{ data: sales }, { data: expenses }, { data: closing }] = await Promise.all([
     supabase
       .from('sales')
       .select('*')
       .gte('created_at', start)
-      .lt('created_at', end)
+      .lte('created_at', end)
       .order('created_at', { ascending: false }),
     supabase
       .from('expenses')
       .select('*')
       .gte('created_at', start)
-      .lt('created_at', end)
+      .lte('created_at', end)
       .order('created_at', { ascending: true }),
     supabase
       .from('cash_closings')
