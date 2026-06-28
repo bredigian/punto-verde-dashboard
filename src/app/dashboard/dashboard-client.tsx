@@ -71,6 +71,8 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
   const totalDay = sales.reduce((sum, s) => sum + s.total, 0)
   const totalEfectivo = sales.filter((s) => s.payment_method === "efectivo").reduce((sum, s) => sum + s.total, 0)
   const totalMP = sales.filter((s) => s.payment_method === "mercadopago").reduce((sum, s) => sum + s.total, 0)
+  const totalVerduleria = sales.filter((s) => s.category === "verduleria").reduce((sum, s) => sum + s.total, 0)
+  const totalPolleria = sales.filter((s) => s.category === "polleria").reduce((sum, s) => sum + s.total, 0)
 
   const filteredSales =
     activeTab === "todas"
@@ -199,6 +201,36 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
               <img src="/mercado-pago-logo.svg" alt="MP" className="h-4 w-4" />
               {sales.filter(s => s.payment_method === "mercadopago").length}
             </span>
+          </CardFooter>
+        </Card>
+      </div>
+
+      {/* Totales por categoría */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <Card>
+          <CardHeader className="pb-1">
+            <CardTitle className="text-xs font-medium text-muted-foreground">🥦 Verdulería</CardTitle>
+          </CardHeader>
+          <CardContent className="py-1">
+            <p className="text-xl font-bold text-green-700">
+              ${totalVerduleria.toLocaleString("es-AR", { minimumFractionDigits: 0 })}
+            </p>
+          </CardContent>
+          <CardFooter>
+            <span className="text-xs text-muted-foreground">{sales.filter(s => s.category === "verduleria").length} ventas</span>
+          </CardFooter>
+        </Card>
+        <Card>
+          <CardHeader className="pb-1">
+            <CardTitle className="text-xs font-medium text-muted-foreground">🍗 Pollería</CardTitle>
+          </CardHeader>
+          <CardContent className="py-1">
+            <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
+              ${totalPolleria.toLocaleString("es-AR", { minimumFractionDigits: 0 })}
+            </p>
+          </CardContent>
+          <CardFooter>
+            <span className="text-xs text-muted-foreground">{sales.filter(s => s.category === "polleria").length} ventas</span>
           </CardFooter>
         </Card>
       </div>
