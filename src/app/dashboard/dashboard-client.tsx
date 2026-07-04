@@ -93,9 +93,12 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
     if (!total) return
     setSaving(true)
 
-    const nextDay = nowInAR()
-    nextDay.setDate(nextDay.getDate() + 1)
-    nextDay.setHours(3, 0, 1, 0)
+    // Si la caja de hoy ya está cerrada, la venta cuenta para el día siguiente.
+    // Anclamos al día AR (todayAR) y sumamos un día vía UTC para evitar depender
+    // de la zona horaria del navegador/servidor. Argentina es UTC-3 fijo (sin DST).
+    const [y, m, d] = todayAR().split("-").map(Number)
+    const nextDate = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10)
+    const nextDay = `${nextDate}T00:00:01-03:00`
 
     const { data, error } = await supabase
       .from("sales")
@@ -107,7 +110,7 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
         unit_price: total,
         total,
         payment_method: payment as PaymentMethod,
-        ...(isClosed && { created_at: nextDay.toISOString() }),
+        ...(isClosed && { created_at: nextDay }),
       })
       .select()
       .single()

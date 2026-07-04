@@ -45,8 +45,8 @@ export default function CierresClient({ closings }: Props) {
     const { data } = await supabase
       .from('expenses')
       .select('*')
-      .gte('created_at', `${closing.date}T00:00:00`)
-      .lte('created_at', `${closing.date}T23:59:59`)
+      .gte('created_at', `${closing.date}T00:00:00-03:00`)
+      .lte('created_at', `${closing.date}T23:59:59.999999-03:00`)
       .order('created_at', { ascending: true })
     setExpenses(data ?? [])
     setLoading(false)
