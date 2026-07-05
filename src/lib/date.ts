@@ -1,5 +1,4 @@
 import { toZonedTime, format as formatTZ } from 'date-fns-tz'
-import { format } from 'date-fns'
 
 const TZ = 'America/Argentina/Buenos_Aires'
 
@@ -8,12 +7,16 @@ export function nowInAR(): Date {
 }
 
 export function todayAR(): string {
-  return formatTZ(new Date(), 'yyyy-MM-dd', { timeZone: TZ })
+  // IMPORTANTE: date-fns-tz `format` renderiza los números (yyyy-MM-dd) en la
+  // zona del runtime; hay que convertir el instante con `toZonedTime` PRIMERO,
+  // o en un server UTC (Vercel) esto devuelve el día equivocado después de las
+  // 21hs AR.
+  return formatTZ(toZonedTime(new Date(), TZ), 'yyyy-MM-dd', { timeZone: TZ })
 }
 
 export function formatInAR(date: string | Date, fmt: string): string {
   const d = typeof date === 'string' ? new Date(date) : date
-  return formatTZ(d, fmt, { timeZone: TZ })
+  return formatTZ(toZonedTime(d, TZ), fmt, { timeZone: TZ })
 }
 
 export function dateToAR(date: string | Date): Date {
