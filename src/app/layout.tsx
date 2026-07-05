@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { ServiceWorkerRegister } from "@/components/sw-register";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"] });
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
         </ThemeProvider>
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
