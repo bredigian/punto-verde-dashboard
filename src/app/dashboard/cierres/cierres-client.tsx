@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, Fragment } from 'react'
 import { CashClosing, Expense } from '@/types'
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -154,7 +154,7 @@ export default function CierresClient({ closings: initialClosings, yearClosings,
         </div>
       ) : (
         <div className="space-y-3">
-          {closings.map((closing) => {
+          {closings.map((closing, index) => {
             const date = dateToAR(closing.date)
             const isToday = closing.date === todayAR()
             const label = isToday
@@ -162,8 +162,26 @@ export default function CierresClient({ closings: initialClosings, yearClosings,
               : format(date, "EEEE d 'de' MMMM", { locale: es })
             const positivo = closing.result >= 0
 
+            const monthKey = date.getFullYear() * 100 + date.getMonth()
+            const prevDate = index > 0 ? dateToAR(closings[index - 1].date) : null
+            const prevKey = prevDate ? prevDate.getFullYear() * 100 + prevDate.getMonth() : null
+            const showMonthSeparator = monthKey !== prevKey
+            const monthLabel =
+              format(date, 'MMMM', { locale: es }) +
+              (date.getFullYear() !== currentYear ? ` ${date.getFullYear()}` : '')
+
             return (
-              <Card key={closing.id}>
+              <Fragment key={closing.id}>
+              {showMonthSeparator && (
+                <div className="flex items-center gap-3 pt-1">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-xs font-medium text-muted-foreground capitalize">
+                    {monthLabel}
+                  </span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+              )}
+              <Card>
                 <CardHeader className="pb-1">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground flex items-center gap-1.5 capitalize">
@@ -225,6 +243,7 @@ export default function CierresClient({ closings: initialClosings, yearClosings,
                   )}
                 </CardFooter>
               </Card>
+              </Fragment>
             )
           })}
 

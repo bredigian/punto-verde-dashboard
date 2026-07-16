@@ -7,8 +7,7 @@ import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
-import { todayAR, formatInAR, dateToAR } from '@/lib/date'
+import { formatInAR, dateToAR } from '@/lib/date'
 import { History, Banknote, Trash2, Lock, Loader2 } from 'lucide-react'
 import { PAGE_SIZE } from './constants'
 import Image from 'next/image'
@@ -118,23 +117,21 @@ export default function HistorialClient({ sales: initialSales, closedDates, init
       ) : (
         <div className="space-y-6">
           {groups.map(({ date, sales: daySales, total }) => {
-            const isToday = date === todayAR()
-            const label = isToday
-              ? 'Hoy'
-              : format(dateToAR(date), "EEEE d 'de' MMMM", { locale: es })
-
             const isClosed = closedDates.has(date)
 
             return (
               <div key={date}>
-                <div className="flex items-center justify-between mb-2 px-1">
-                  <p className="text-sm font-semibold capitalize text-muted-foreground flex items-center gap-1.5">
-                    {isClosed && <Lock className="h-3.5 w-3.5" />}
-                    {label}
-                  </p>
-                  <span className="text-sm font-semibold bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100 px-2.5 py-1 rounded-full">
-                    ${total.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    {isClosed && <Lock className="h-3 w-3" />}
+                    {format(dateToAR(date), 'dd/MM/yyyy')}
+                    <span className="text-muted-foreground/40">·</span>
+                    <span className="inline-flex items-center leading-none text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100 px-2 py-1 rounded-full">
+                      ${total.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
+                    </span>
                   </span>
+                  <div className="h-px flex-1 bg-border" />
                 </div>
 
                 <div className="space-y-3">
