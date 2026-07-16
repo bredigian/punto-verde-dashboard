@@ -23,16 +23,17 @@ export default function CierresClient({ closings }: Props) {
   const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1)
   const currentYear = now.getFullYear()
 
-  const monthlyResult = closings
-    .filter(c => {
-      const d = dateToAR(c.date)
-      return d.getFullYear() * 100 + (d.getMonth() + 1) === currentMonth
-    })
-    .reduce((sum, c) => sum + c.result, 0)
+  const monthlyClosings = closings.filter(c => {
+    const d = dateToAR(c.date)
+    return d.getFullYear() * 100 + (d.getMonth() + 1) === currentMonth
+  })
+  const yearlyClosings = closings.filter(c => dateToAR(c.date).getFullYear() === currentYear)
 
-  const yearlyResult = closings
-    .filter(c => dateToAR(c.date).getFullYear() === currentYear)
-    .reduce((sum, c) => sum + c.result, 0)
+  const monthlyResult = monthlyClosings.reduce((sum, c) => sum + c.result, 0)
+  const yearlyResult = yearlyClosings.reduce((sum, c) => sum + c.result, 0)
+
+  const monthlyMP = monthlyClosings.reduce((sum, c) => sum + (c.total_mercadopago ?? 0), 0)
+  const yearlyMP = yearlyClosings.reduce((sum, c) => sum + (c.total_mercadopago ?? 0), 0)
 
   const [selectedClosing, setSelectedClosing] = useState<CashClosing | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -69,9 +70,19 @@ export default function CierresClient({ closings }: Props) {
             </span>
           </CardHeader>
           <CardContent className="py-1">
-            <p className={`text-xl font-bold ${monthlyResult >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+            <p className="text-[11px] text-muted-foreground">Neto</p>
+            <p className={`text-xl font-bold ${monthlyResult >= 0 ? 'text-foreground' : 'text-red-600'}`}>
               ${monthlyResult.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
             </p>
+            <div className="mt-2 pt-2 border-t">
+              <span className="text-[11px] text-sky-700 dark:text-sky-300 flex items-center gap-1">
+                <img src="/mercado-pago-logo.svg" alt="MP" className="h-3 w-3" />
+                Mercado Pago
+              </span>
+              <p className="text-base font-semibold text-sky-700 dark:text-sky-300">
+                ${monthlyMP.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
+              </p>
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -82,9 +93,19 @@ export default function CierresClient({ closings }: Props) {
             </span>
           </CardHeader>
           <CardContent className="py-1">
-            <p className={`text-xl font-bold ${yearlyResult >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+            <p className="text-[11px] text-muted-foreground">Neto</p>
+            <p className={`text-xl font-bold ${yearlyResult >= 0 ? 'text-foreground' : 'text-red-600'}`}>
               ${yearlyResult.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
             </p>
+            <div className="mt-2 pt-2 border-t">
+              <span className="text-[11px] text-sky-700 dark:text-sky-300 flex items-center gap-1">
+                <img src="/mercado-pago-logo.svg" alt="MP" className="h-3 w-3" />
+                Mercado Pago
+              </span>
+              <p className="text-base font-semibold text-sky-700 dark:text-sky-300">
+                ${yearlyMP.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -117,10 +138,32 @@ export default function CierresClient({ closings }: Props) {
                     </span>
                   </div>
                 </CardHeader>
-                <CardContent className="py-1">
-                  <p className={`text-lg font-bold ${positivo ? 'text-green-700' : 'text-red-600'}`}>
+                <CardContent className="py-1 space-y-2">
+                  <p className={`text-lg font-bold ${positivo ? 'text-foreground' : 'text-red-600'}`}>
                     ${closing.result.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
                   </p>
+                  {closing.total_mercadopago !== null && closing.total_efectivo !== null && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-lg border bg-muted/40 px-2.5 py-1.5">
+                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Banknote className="h-3 w-3" />
+                          Efectivo
+                        </span>
+                        <p className="text-sm font-semibold">
+                          ${closing.total_efectivo.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 dark:border-sky-900 dark:bg-sky-950">
+                        <span className="text-[11px] text-sky-700 dark:text-sky-300 flex items-center gap-1">
+                          <img src="/mercado-pago-logo.svg" alt="MP" className="h-3 w-3" />
+                          Mercado Pago
+                        </span>
+                        <p className="text-sm font-semibold text-sky-700 dark:text-sky-300">
+                          ${closing.total_mercadopago.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
                 <CardFooter className="py-2 flex items-center justify-between">
                   <div className="flex gap-4 text-xs text-muted-foreground">

@@ -34,6 +34,8 @@ create table public.cash_closings (
   id uuid default gen_random_uuid() primary key,
   date date not null unique,
   total_sales numeric(10,2) not null,
+  total_efectivo numeric(10,2),
+  total_mercadopago numeric(10,2),
   total_expenses numeric(10,2) not null,
   result numeric(10,2) not null,
   closed_at timestamptz default now()

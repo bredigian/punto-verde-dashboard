@@ -77,7 +77,14 @@ export function CierreCajaDrawer({ open, onClose, sales, initialExpenses, initia
     setClosingInProgress(true)
     const { data, error } = await supabase
       .from('cash_closings')
-      .insert({ date: today, total_sales: totalVentas, total_expenses: totalGastos, result: resultado })
+      .insert({
+        date: today,
+        total_sales: totalVentas,
+        total_efectivo: totalEfectivo,
+        total_mercadopago: totalMP,
+        total_expenses: totalGastos,
+        result: resultado,
+      })
       .select()
       .single()
     if (!error && data) {

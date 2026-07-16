@@ -271,7 +271,7 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
                     </CardHeader>
                     <CardContent className="py-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-lg font-bold text-green-700">
+                        <p className="text-lg font-bold text-foreground">
                           ${sale.total.toLocaleString("es-AR", { minimumFractionDigits: 0 })}
                           {sale.product_name && sale.product_name !== "Venta" && (
                             <span className="ml-1.5 font-normal text-sm text-muted-foreground">

@@ -12,6 +12,8 @@ export interface CashClosing {
   id: string
   date: string
   total_sales: number
+  total_efectivo: number | null
+  total_mercadopago: number | null
   total_expenses: number
   result: number
   closed_at: string
