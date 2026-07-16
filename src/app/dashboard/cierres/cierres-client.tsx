@@ -1,44 +1,81 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { CashClosing, Expense } from '@/types'
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { todayAR, formatInAR, nowInAR, dateToAR } from '@/lib/date'
-import { BookLock, Banknote, Receipt, TrendingUp, CalendarDays } from 'lucide-react'
+import { BookLock, Banknote, Receipt, TrendingUp, CalendarDays, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import logo from '../../../../public/punto-fresco-logo.jpg'
 import { Skeleton } from '@/components/ui/skeleton'
 import { createClient } from '@/lib/supabase/client'
+import { PAGE_SIZE } from './constants'
+
+type YearClosing = Pick<CashClosing, 'date' | 'result' | 'total_mercadopago'>
 
 interface Props {
   closings: CashClosing[]
+  yearClosings: YearClosing[]
+  initialHasMore: boolean
 }
 
-export default function CierresClient({ closings }: Props) {
+export default function CierresClient({ closings: initialClosings, yearClosings, initialHasMore }: Props) {
   const now = nowInAR()
   const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1)
   const currentYear = now.getFullYear()
 
-  const monthlyClosings = closings.filter(c => {
+  const monthlyClosings = yearClosings.filter(c => {
     const d = dateToAR(c.date)
     return d.getFullYear() * 100 + (d.getMonth() + 1) === currentMonth
   })
-  const yearlyClosings = closings.filter(c => dateToAR(c.date).getFullYear() === currentYear)
 
   const monthlyResult = monthlyClosings.reduce((sum, c) => sum + c.result, 0)
-  const yearlyResult = yearlyClosings.reduce((sum, c) => sum + c.result, 0)
+  const yearlyResult = yearClosings.reduce((sum, c) => sum + c.result, 0)
 
   const monthlyMP = monthlyClosings.reduce((sum, c) => sum + (c.total_mercadopago ?? 0), 0)
-  const yearlyMP = yearlyClosings.reduce((sum, c) => sum + (c.total_mercadopago ?? 0), 0)
+  const yearlyMP = yearClosings.reduce((sum, c) => sum + (c.total_mercadopago ?? 0), 0)
 
+  const [closings, setClosings] = useState(initialClosings)
+  const [hasMore, setHasMore] = useState(initialHasMore)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
   const [selectedClosing, setSelectedClosing] = useState<CashClosing | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || closings.length === 0) return
+    setLoadingMore(true)
+    const last = closings[closings.length - 1]
+    const { data } = await supabase
+      .from('cash_closings')
+      .select('*')
+      .order('date', { ascending: false })
+      .lt('date', last.date)
+      .limit(PAGE_SIZE)
+    const rows = data ?? []
+    setClosings(prev => [...prev, ...rows])
+    if (rows.length < PAGE_SIZE) setHasMore(false)
+    setLoadingMore(false)
+  }, [loadingMore, hasMore, closings, supabase])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el || !hasMore) return
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) loadMore()
+      },
+      { rootMargin: '200px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, loadMore])
 
   async function handleViewExpenses(closing: CashClosing) {
     setSelectedClosing(closing)
@@ -190,6 +227,12 @@ export default function CierresClient({ closings }: Props) {
               </Card>
             )
           })}
+
+          {hasMore && (
+            <div ref={sentinelRef} className="flex justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
         </div>
       )}
 

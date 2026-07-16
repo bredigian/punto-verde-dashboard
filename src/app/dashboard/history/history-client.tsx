@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sale, Category, PaymentMethod } from '@/types'
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { todayAR, formatInAR, dateToAR } from '@/lib/date'
-import { History, Banknote, Trash2, Lock } from 'lucide-react'
+import { History, Banknote, Trash2, Lock, Loader2 } from 'lucide-react'
+import { PAGE_SIZE } from './constants'
 import Image from 'next/image'
 import logo from '../../../../public/punto-fresco-logo.jpg'
 import { createClient } from '@/lib/supabase/client'
@@ -48,15 +49,48 @@ function groupByDay(sales: Sale[]): DayGroup[] {
 interface Props {
   sales: Sale[]
   closedDates: Set<string>
+  initialHasMore: boolean
 }
 
-export default function HistorialClient({ sales: initialSales, closedDates }: Props) {
+export default function HistorialClient({ sales: initialSales, closedDates, initialHasMore }: Props) {
   const [sales, setSales] = useState(initialSales)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: string } | null>(null)
+  const [hasMore, setHasMore] = useState(initialHasMore)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
   const supabase = createClient()
   const groups = groupByDay(sales)
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || sales.length === 0) return
+    setLoadingMore(true)
+    const last = sales[sales.length - 1]
+    const { data } = await supabase
+      .from('sales')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .lt('created_at', last.created_at)
+      .limit(PAGE_SIZE)
+    const rows = data ?? []
+    setSales(prev => [...prev, ...rows])
+    if (rows.length < PAGE_SIZE) setHasMore(false)
+    setLoadingMore(false)
+  }, [loadingMore, hasMore, sales, supabase])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el || !hasMore) return
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) loadMore()
+      },
+      { rootMargin: '200px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, loadMore])
 
   async function handleDelete(id: string, date: string) {
     if (closedDates.has(date)) return
@@ -153,6 +187,12 @@ export default function HistorialClient({ sales: initialSales, closedDates }: Pr
               </div>
             )
           })}
+
+          {hasMore && (
+            <div ref={sentinelRef} className="flex justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
         </div>
       )}
 
