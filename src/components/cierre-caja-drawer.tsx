@@ -9,6 +9,9 @@ import { Input } from '@/components/ui/input'
 import { MoneyInput } from '@/components/money-input'
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog'
 import { Banknote, Trash2, Plus, Lock } from 'lucide-react'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
+import { todayAR, dateToAR } from '@/lib/date'
 
 interface Props {
   open: boolean
@@ -16,10 +19,12 @@ interface Props {
   sales: Sale[]
   initialExpenses: Expense[]
   initialClosing: CashClosing | null
-  today: string
+  /** Día (yyyy-MM-dd, hora AR) que se está cerrando. Puede ser un día pasado. */
+  date: string
+  onClosed?: (closing: CashClosing) => void
 }
 
-export function CierreCajaDrawer({ open, onClose, sales, initialExpenses, initialClosing, today }: Props) {
+export function CierreCajaDrawer({ open, onClose, sales, initialExpenses, initialClosing, date, onClosed }: Props) {
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses)
   const [closing, setClosing] = useState<CashClosing | null>(initialClosing)
   const [desc, setDesc] = useState('')
@@ -32,6 +37,8 @@ export function CierreCajaDrawer({ open, onClose, sales, initialExpenses, initia
   const supabase = createClient()
 
   const isClosed = closing !== null
+  const isToday = date === todayAR()
+  const dateLabel = format(dateToAR(date), "EEEE d 'de' MMMM", { locale: es })
 
   const totalEfectivo = sales.filter(s => s.payment_method === 'efectivo').reduce((sum, s) => sum + s.total, 0)
   const totalMP = sales.filter(s => s.payment_method === 'mercadopago').reduce((sum, s) => sum + s.total, 0)
@@ -45,7 +52,13 @@ export function CierreCajaDrawer({ open, onClose, sales, initialExpenses, initia
     setSaving(true)
     const { data, error } = await supabase
       .from('expenses')
-      .insert({ description: desc.trim(), amount: parsed })
+      .insert({
+        description: desc.trim(),
+        amount: parsed,
+        // Al cerrar un día pasado el gasto debe quedar fechado en ese día; si no,
+        // se guardaría con la fecha de hoy y no aparecería en el detalle del cierre.
+        ...(!isToday && { created_at: `${date}T23:59:00-03:00` }),
+      })
       .select()
       .single()
     if (!error && data) {
@@ -78,7 +91,7 @@ export function CierreCajaDrawer({ open, onClose, sales, initialExpenses, initia
     const { data, error } = await supabase
       .from('cash_closings')
       .insert({
-        date: today,
+        date,
         total_sales: totalVentas,
         total_efectivo: totalEfectivo,
         total_mercadopago: totalMP,
@@ -89,6 +102,7 @@ export function CierreCajaDrawer({ open, onClose, sales, initialExpenses, initia
       .single()
     if (!error && data) {
       setClosing(data)
+      onClosed?.(data)
       setConfirmOpen(false)
       setWaitingForConfirm(false)
       onClose()
@@ -105,6 +119,9 @@ export function CierreCajaDrawer({ open, onClose, sales, initialExpenses, initia
             Cierre de caja
             {isClosed && <Lock className="h-4 w-4 text-muted-foreground" />}
           </DrawerTitle>
+          {!isToday && (
+            <p className="text-sm text-muted-foreground capitalize">{dateLabel}</p>
+          )}
         </DrawerHeader>
 
         <div className="overflow-y-auto px-4 pb-8 space-y-6">
@@ -230,7 +247,9 @@ export function CierreCajaDrawer({ open, onClose, sales, initialExpenses, initia
           <AlertDialogHeader>
             <AlertDialogTitle>¿Cerrar la caja?</AlertDialogTitle>
             <AlertDialogDescription>
-              Las ventas de hoy quedarán liquidadas y no podrán eliminarse. Las ventas nuevas se registrarán como del día siguiente.
+              {isToday
+                ? 'Las ventas de hoy quedarán liquidadas y no podrán eliminarse. Las ventas nuevas se registrarán como del día siguiente.'
+                : `Las ventas del ${dateLabel} quedarán liquidadas y no podrán eliminarse.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

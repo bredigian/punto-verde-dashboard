@@ -45,3 +45,25 @@ alter table public.cash_closings enable row level security;
 
 create policy "Authenticated users can manage cash_closings"
   on public.cash_closings for all to authenticated using (true) with check (true);
+
+-- Past days with activity but no closing (see migrations/002_pending_closing_dates.sql)
+create or replace function public.pending_closing_dates()
+returns table (closing_date date)
+language sql
+stable
+as $$
+  select d.day as closing_date
+  from (
+    select (created_at at time zone 'America/Argentina/Buenos_Aires')::date as day
+    from public.sales
+    union
+    select (created_at at time zone 'America/Argentina/Buenos_Aires')::date
+    from public.expenses
+  ) d
+  where d.day < (now() at time zone 'America/Argentina/Buenos_Aires')::date
+    and not exists (select 1 from public.cash_closings c where c.date = d.day)
+  order by d.day;
+$$;
+
+revoke execute on function public.pending_closing_dates() from anon;
+grant execute on function public.pending_closing_dates() to authenticated;

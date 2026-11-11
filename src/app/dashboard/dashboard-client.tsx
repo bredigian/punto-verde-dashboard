@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import React from "react"
 import Image from "next/image"
 import logo from "../../../public/punto-fresco-logo.jpg"
@@ -21,9 +21,10 @@ import { PaymentPicker } from "@/components/payment-picker"
 import { Plus, LogOut, TrendingUp, ShoppingCart, Trash2, Banknote, Calculator } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { CierreCajaDrawer } from "@/components/cierre-caja-drawer"
+import { PendingClosingBanner } from "@/components/pending-closing-banner"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { todayAR, formatInAR, nowInAR } from "@/lib/date"
+import { todayAR, formatInAR, dateToAR } from "@/lib/date"
 
 const CATEGORY_COLORS: Record<Category, string> = {
   verduleria: "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100",
@@ -39,14 +40,16 @@ interface Props {
   initialSales: Sale[]
   initialExpenses: Expense[]
   initialClosing: CashClosing | null
+  pendingDates: string[]
+  /** Día (yyyy-MM-dd, hora AR) al que pertenecen los datos cargados por el servidor. */
+  today: string
 }
 
-export default function DashboardClient({ initialSales, initialExpenses, initialClosing }: Props) {
+export default function DashboardClient({ initialSales, initialExpenses, initialClosing, pendingDates, today }: Props) {
   const [sales, setSales] = useState<Sale[]>(initialSales)
   const [closing, setClosing] = useState<CashClosing | null>(initialClosing)
   const [open, setOpen] = useState(false)
   const [cierreOpen, setCierreOpen] = useState(false)
-  const today = todayAR()
   const isClosed = closing !== null
   const [amount, setAmount] = useState("")
   const [category, setCategory] = useState<Category | "">("")
@@ -68,6 +71,29 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  // Si la app queda abierta pasada la medianoche, los datos en pantalla son del día
+  // anterior. Detectamos el cambio de día y recargamos desde el servidor: la página
+  // se remonta (key por fecha) y el día anterior aparece en el aviso de cajas sin cerrar.
+  const dayChanged = useCallback(() => {
+    if (todayAR() === today) return false
+    router.refresh()
+    return true
+  }, [today, router])
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') dayChanged()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    const interval = setInterval(dayChanged, 30_000)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+      clearInterval(interval)
+    }
+  }, [dayChanged])
+
   const totalDay = sales.reduce((sum, s) => sum + s.total, 0)
   const totalEfectivo = sales.filter((s) => s.payment_method === "efectivo").reduce((sum, s) => sum + s.total, 0)
   const totalMP = sales.filter((s) => s.payment_method === "mercadopago").reduce((sum, s) => sum + s.total, 0)
@@ -80,6 +106,7 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
       : sales.filter((s) => s.category === activeTab)
 
   function handleOpen() {
+    if (dayChanged()) return
     setAmount("")
     setCategory("")
     setPayment("")
@@ -91,12 +118,16 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
     e.preventDefault()
     const total = parseFloat(amount || "0")
     if (!total) return
+    if (dayChanged()) {
+      setOpen(false)
+      return
+    }
     setSaving(true)
 
     // Si la caja de hoy ya está cerrada, la venta cuenta para el día siguiente.
     // Anclamos al día AR (todayAR) y sumamos un día vía UTC para evitar depender
     // de la zona horaria del navegador/servidor. Argentina es UTC-3 fijo (sin DST).
-    const [y, m, d] = todayAR().split("-").map(Number)
+    const [y, m, d] = today.split("-").map(Number)
     const nextDate = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10)
     const nextDay = `${nextDate}T00:00:01-03:00`
 
@@ -156,9 +187,11 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
 
       <div className="p-4">
       <p className="text-sm text-muted-foreground capitalize mt-2">
-        {format(nowInAR(), "EEEE d 'de' MMMM", { locale: es })}
+        {format(dateToAR(today), "EEEE d 'de' MMMM", { locale: es })}
       </p>
       <p className="text-sm text-muted-foreground/70 mb-4">Registrá ventas y controlá el movimiento del día.</p>
+
+      <PendingClosingBanner pendingDates={pendingDates} />
 
       {/* Resumen */}
       <div className="grid grid-cols-6 gap-3 mb-6">
@@ -310,7 +343,7 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
         <Button className="flex-1 h-14 text-base shadow-lg bg-green-600 hover:bg-green-700" onClick={handleOpen}>
           Registrar venta
         </Button>
-        <Button className="h-14 px-4 shadow-lg bg-amber-500 hover:bg-amber-600 text-white dark:text-black text-sm font-medium" onClick={() => setCierreOpen(true)}>
+        <Button className="h-14 px-4 shadow-lg bg-amber-500 hover:bg-amber-600 text-white dark:text-black text-sm font-medium" onClick={() => { if (!dayChanged()) setCierreOpen(true) }}>
           Cerrar caja
         </Button>
       </div>
@@ -369,7 +402,8 @@ export default function DashboardClient({ initialSales, initialExpenses, initial
         sales={sales}
         initialExpenses={initialExpenses}
         initialClosing={initialClosing}
-        today={today}
+        date={today}
+        onClosed={setClosing}
       />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={v => !v && setDeleteTarget(null)}>
